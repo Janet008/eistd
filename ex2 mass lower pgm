@@ -1,0 +1,167 @@
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+
+// Direction Enum
+enum Direction {
+    N, E, S, W;
+
+    public Direction turnLeft() {
+        return values()[(ordinal() + 3) % 4];
+    }
+
+    public Direction turnRight() {
+        return values()[(ordinal() + 1) % 4];
+    }
+}
+
+// Point Class for Obstacles
+class Point {
+    private final int x;
+    private final int y;
+
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Point point = (Point) o;
+        return x == point.x && y == point.y;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, y);
+    }
+}
+
+// Grid Class to Manage Boundaries and Obstacles
+class Grid {
+    private final int width;
+    private final int height;
+    private final Set<Point> obstacles;
+
+    public Grid(int width, int height, Set<Point> obstacles) {
+        this.width = width;
+        this.height = height;
+        this.obstacles = new HashSet<>(obstacles);
+    }
+
+    public boolean isInBounds(int x, int y) {
+        return x >= 0 && x < width && y >= 0 && y < height;
+    }
+
+    public boolean hasObstacle(int x, int y) {
+        return obstacles.contains(new Point(x, y));
+    }
+}
+
+// Command Interface
+interface Command {
+    void execute(Rover rover);
+}
+
+// Concrete Commands
+class MoveCommand implements Command {
+    @Override
+    public void execute(Rover rover) {
+        rover.move();
+    }
+}
+
+class TurnLeftCommand implements Command {
+    @Override
+    public void execute(Rover rover) {
+        rover.turnLeft();
+    }
+}
+
+class TurnRightCommand implements Command {
+    @Override
+    public void execute(Rover rover) {
+        rover.turnRight();
+    }
+}
+
+// Rover Class
+class Rover {
+    private int x;
+    private int y;
+    private Direction direction;
+    private Grid grid;
+
+    public Rover(int x, int y, Direction direction, Grid grid) {
+        this.x = x;
+        this.y = y;
+        this.direction = direction;
+        this.grid = grid;
+    }
+
+    public void move() {
+        int newX = x;
+        int newY = y;
+
+        switch (direction) {
+            case N: newY++; break;
+            case E: newX++; break;
+            case S: newY--; break;
+            case W: newX--; break;
+        }
+
+        if (grid.isInBounds(newX, newY) && !grid.hasObstacle(newX, newY)) {
+            x = newX;
+            y = newY;
+        }
+    }
+
+    public void turnLeft() {
+        direction = direction.turnLeft();
+    }
+
+    public void turnRight() {
+        direction = direction.turnRight();
+    }
+
+    public void executeCommand(Command command) {
+        command.execute(this);
+    }
+
+    public String getStatusReport() {
+        return String.format("Rover is at (%d, %d) facing %s. %s",
+                x, y, direction, grid.hasObstacle(x, y) ? "Obstacle detected." : "No Obstacles detected.");
+    }
+}
+
+// Main Class for Simulation
+public class Main {
+    public static void main(String[] args) {
+        // Initialize Grid and Obstacles
+        Set<Point> obstacles = new HashSet<>();
+        obstacles.add(new Point(2, 2));
+        obstacles.add(new Point(3, 5));
+        Grid grid = new Grid(10, 10, obstacles);
+
+        // Initialize Rover
+        Rover rover = new Rover(0, 0, Direction.N, grid);
+
+        // Define Commands
+        Command move = new MoveCommand();
+        Command turnLeft = new TurnLeftCommand();
+        Command turnRight = new TurnRightCommand();
+
+        // Execute Commands
+        rover.executeCommand(move); // Move to (0, 1)
+        rover.executeCommand(move); // Move to (0, 2)
+        rover.executeCommand(turnRight); // Turn to East
+        rover.executeCommand(move); // Move to (1, 2)
+        rover.executeCommand(turnLeft); // Turn back to North
+        rover.executeCommand(move); // Move to (1, 3)
+
+        // Print Status Report
+        System.out.println(rover.getStatusReport());
+    }
+}
